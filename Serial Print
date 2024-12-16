@@ -1,0 +1,67 @@
+#include <LiquidCrystal.h>
+
+// LCD pins
+LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+
+// Rotary encoder pins
+#define DO_PIN 2  // Digital Output from the IR sensor (hole detection)
+
+// Variables
+volatile int holeCounter = 0;  // Hole counter
+int lastState = LOW;           // Last state of the DO pin
+int currentState = LOW;        // Current state of the DO pin
+unsigned long debounceTime = 0;  // Debounce timer
+const unsigned long debounceDelay = 5;  // 5ms debounce delay
+int count = 0;  // Final counter (increments by 1 for every 20 holes)
+
+void setup() {
+  // Set the DO_PIN as input
+  pinMode(DO_PIN, INPUT);
+
+  // Initialize LCD
+  lcd.begin(16, 2);
+  lcd.setCursor(0, 0);
+  lcd.print("Counter: 0");
+  
+  // Start Serial Monitor for debugging
+  Serial.begin(9600);
+}
+
+void loop() {
+  // Read the digital output (hole detection) from the sensor
+  currentState = digitalRead(DO_PIN);
+
+  // Debounced pulse counting
+  if (currentState == HIGH && lastState == LOW) {
+    unsigned long currentTime = millis();
+    if (currentTime - debounceTime > debounceDelay) {
+      holeCounter++;  // Increment the hole counter when a hole is detected
+      debounceTime = currentTime;
+      
+      // Check if 20 holes have been counted
+      if (holeCounter >= 20) {
+        count++;  // Increment the count by 1 for every 20 holes
+        holeCounter = 0;  // Reset the hole counter for the next set of 20 holes
+        updateDisplay();  // Update the LCD display
+      }
+    }
+  }
+
+  lastState = currentState;  // Update lastState for next loop
+
+  // Print to Serial Monitor for debugging
+  Serial.print("Hole Count: ");
+  Serial.print(holeCounter);
+  Serial.print(" | Final Count: ");
+  Serial.println(count);
+
+  delay(10);  // Small delay for stable readings
+}
+
+// Function to update the LCD display
+void updateDisplay() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Count: ");
+  lcd.print(count);
+}
